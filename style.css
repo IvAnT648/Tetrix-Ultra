@@ -1,0 +1,62 @@
+* {
+    box-sizing: border-box;
+    font-family: Arial;
+}
+
+#main {
+    margin: 10px auto;
+    position: relative;
+    overflow: hidden;
+    width: 500px;
+    height: 700px;
+    border: 1px solid #000;
+}
+
+.tetris {
+    width: 500px;
+    /* height: 900px; */
+    display: flex;
+    overflow: hidden;
+    flex-wrap: wrap;
+    position: absolute;
+    bottom: 0;
+    background-color: #fff;
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ccc;
+}
+
+.figure {
+    background-color: #000;
+}
+
+.FigureI {
+    background-color: red;
+}
+
+.FigureJ {
+    background-color: orange;
+}
+
+.FigureL {
+    background-color: yellow;
+}
+
+.FigureO {
+    background-color: green;
+}
+
+.FigureT {
+    background-color: skyblue;
+}
+
+.FigureZ {
+    background-color: blue;
+}
+
+.FigureS {
+    background-color: blueviolet;
+}
