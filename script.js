@@ -279,7 +279,7 @@ class Main extends HtmlBlock
     }
 }
 
-class Game 
+class Game
 {
 	/** @property {Main} mainBlock */
 	mainBlock = null;
@@ -299,6 +299,8 @@ class Game
 	currentFigureForm = null;
 	/** @property {Array<Point>} currentCoordinates */
 	currentCoordinates = null;
+	allowFigureFall = false;
+	fallTimerId = null;
 
 	constructor(width, height, startPoint) 
 	{
@@ -307,7 +309,7 @@ class Game
 		this.mainBlock = new Main(width, height);
 		this.startPoint = startPoint;
 		this.nextPoint = startPoint;
-		this.figureFallDelay = 800;
+		this.figureFallDelay = 700;
 	}
 
 	setLevelDifficulty(level) 
@@ -321,35 +323,9 @@ class Game
 	{
 		if (!this.mainBlock) throw "Run game failed";
 		this._selectFigure();
-		this._drawFigure();
-
-	}
-
-	moveFigure(event)
-	{
-		let moveDirection = null;
-		switch (event.keyCode) {
-
-			case 37: // key left
-				moveDirection = -1;
-				break;
-			case 38: // key up
-				break;
-			case 39: // key right
-				moveDirection = 1;
-				break;
-			case 40: // key down
-				break;
-		}
-		if (moveDirection !== null) {
-			let newPoint = new Point(this.nextPoint.X + moveDirection, this.nextPoint.Y);
-			let coordinates = this.checkPoint(newPoint);
-			if (Array.isArray(coordinates)) {
-				this.nextPoint = newPoint;
-				this.currentCoordinates = coordinates;
-				this._drawFigure();
-			}
-		}
+		this.drawFigure();
+		this.fallTimerId = setInterval(this._figureFall.bind(this), this.figureFallDelay);
+		setTimeout(() => clearInterval(this.fallTimerId), 7000);
 	}
 
 	/**
@@ -368,45 +344,20 @@ class Game
 		indents.forEach(indent => {
 			coordinates.push(new Point(point.X + indent.X, point.Y + indent.Y));
 		});
-		coordinates.forEach(point => {
+		for (let point of coordinates) {
 			if (point.X < 1 || point.X > this.width || point.Y < 1) { 
 				return false;
 			}
-		});
+		}
 		
 		return coordinates;
 	}
 
-	_selectFigure() 
+	drawFigure()
 	{
-		// TODO: select random figure and form
-		this.currentFigure = new FigureI();
+		if (!this._calcCoordinates()) return;
+		this._clearFigure();
 
-		if (!this.currentFigure) return;
-		let index = 0;
-		// TODO: select random form
-		this.currentFigureForm = this.currentFigure.getForm(index);
-		this._calcCoordinates();
-	}
-
-	_wait() 
-	{
-		if (!this.figureFallDelay) {
-			this.figureFallDelay = this.defaultFallDelay;
-		}
-		let start = new Date;
-		let end = null;
-		do {
-			end = new Date;
-		} while ((end - start) < this.figureFallDelay);
-	}
-
-	_drawFigure() 
-	{
-		if (!Array.isArray(this.currentCoordinates)) {
-			this._calcCoordinates();
-		}
-		
 		this.currentCoordinates.forEach(point => {
 			// find in cell blocks
 			let cell = this.mainBlock.tetris.findCell(point);
@@ -418,41 +369,99 @@ class Game
 			cellHtml.classList.add(this.currentFigure.cssClass);
 		});
 	}
-
-	_clearField(event)
+	
+	_figureFall()
 	{
-		let elements = document.querySelectorAll('.' + this.gameContext.currentFigure.cssClass + ':not(.set)');
+		let newPoint = new Point(this.nextPoint.X, this.nextPoint.Y - 1);
+		let coordinates = this.checkPoint(newPoint, this.currentFigureForm);
+		if (Array.isArray(coordinates)) {
+			this.nextPoint = newPoint;
+			this.currentCoordinates = coordinates;
+			this.drawFigure();
+		}
+		for (let point of this.currentCoordinates) {
+			if ()
+		}
+	}
+
+	_selectFigure() 
+	{
+		// TODO: select random figure and form
+		this.currentFigure = new FigureJ();
+
+		if (!this.currentFigure) return;
+		let index = 0;
+		// TODO: select random form
+		this.currentFigureForm = this.currentFigure.getForm(index);
+		this._calcCoordinates();
+	}
+
+	_clearFigure()
+	{
+		let cssClass = this.currentFigure.cssClass;
+		let elements = document.querySelectorAll('.' + cssClass + ':not(.set)');
 		for (let elem of elements) {
-			elem.classList.remove(this.gameContext.currentFigure.cssClass);
+			elem.classList.remove(cssClass);
 		}
 	}
 
 	_calcCoordinates()
 	{
-		if (!this.nextPoint) "Next point not defined";
+		if (!this.nextPoint) return false;
 		if (!Array.isArray(this.currentFigureForm)) throw "Figure form isn't corrected";
 		this.currentCoordinates = [];
 		this.currentFigureForm.forEach(indent => {
 			this.currentCoordinates.push(new Point(this.nextPoint.X + indent.X, this.nextPoint.Y + indent.Y));
 		});
-	}
-
-	_checkNextPoint() 
-	{
-		if (!this.currentCoordinates) return false;
-		this.currentCoordinates.forEach(point => {
-			if (point.X < 1 || point.X > this.width || point.Y < 1) { 
-				return false;
-			}
-		});
 		return true;
+	}
+}
+
+class Observers
+{
+	static keyObserver(event)
+	{
+		let game = this.gameContext;
+		if (!game) return;
+		let moveDirection = null;
+		let newPoint = null;
+		switch (event.keyCode) {
+			case 37: // key left
+				newPoint = new Point(game.nextPoint.X - 1, game.nextPoint.Y);
+				break;
+			case 38: // key up
+				break;
+			case 39: // key right
+				newPoint = new Point(game.nextPoint.X + 1, game.nextPoint.Y);
+				break;
+			case 40: // key down
+				game.allowFigureFall = true;
+		}
+		if (newPoint !== null) {
+			let coordinates = game.checkPoint(newPoint, game.currentFigureForm);
+			if (Array.isArray(coordinates)) {
+				game.nextPoint = newPoint;
+				game.currentCoordinates = coordinates;
+				game.drawFigure();
+			}
+		}
+		if (game.allowFigureFall) {
+			newPoint = new Point(game.nextPoint.X, game.nextPoint.Y - 1)
+			let coordinates = game.checkPoint(newPoint, game.currentFigureForm);
+			if (Array.isArray(coordinates)) {
+				game.nextPoint = newPoint;
+				game.currentCoordinates = coordinates;
+				game.drawFigure();
+				game.allowFigureFall = false;
+			}
+		}
 	}
 }
 
 /// ---------------------- Running ---------------------- ///
 
-game = new Game(WIDTH, HEIGHT, new Point(5, 6));
-addEventListener('click', { handleEvent: game._clearField, gameContext: game })
+game = new Game(WIDTH, HEIGHT, new Point(5, 14));
+addEventListener('keydown', { handleEvent: Observers.keyObserver, gameContext: game });
 game.run();
 
 //------------------------------------------------------- ///
