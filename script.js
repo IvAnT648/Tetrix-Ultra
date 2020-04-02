@@ -2,7 +2,7 @@
 
 // Definitions
 
-const CELL_ID_MASK = 'cell-'
+const CELL_ID_PREFIX = 'cell-'
 const WIDTH = 10
 const HEIGHT = 14
 
@@ -17,20 +17,21 @@ class Point
 
 class AbstractFigure 
 {
-	constructor(form) 
+	forms = [];
+	cssClass = null;
+
+	constructor() 
 	{
 		this.forms = [];
-        if (form !== undefined) {
-            this.forms.push(form);
-		}
 		this.cssClass = this.constructor.name;
     }
 
     addForm(form) {
-        if (form.isArray()) {
+        if (Array.isArray(form)) {
             this.forms.push(form);
             return true;
-        } else { return false; }
+		}
+		return false;
     }
 
     getForms() {
@@ -40,19 +41,29 @@ class AbstractFigure
     getForm(index) {
         return this.forms[index];
     }
+    
+    getFormQty()
+    {
+        return this.forms.length;
+    }
+	
+	stopFalling() {
+
+	}
 }
 
 class FigureI extends AbstractFigure 
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(0, 2),
             new Point(0, 3)
 		]);
-		this.forms.push([
+		this.addForm([
             new Point(0, 0),
             new Point(1, 0),
             new Point(2, 0),
@@ -65,25 +76,26 @@ class FigureL extends AbstractFigure
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(1, 0),
             new Point(0, 1),
             new Point(0, 2)
 		]);
-		this.forms.push([
+		this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(1, 1),
             new Point(2, 1)
 		]);
-		this.forms.push([
+		this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(0, 2),
             new Point(-1, 2)
 		]);
-		this.forms.push([
+		this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(0, 2),
@@ -96,25 +108,26 @@ class FigureJ extends AbstractFigure
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(1, 0),
             new Point(1, 1),
             new Point(1, 2)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(1, 0),
             new Point(2, 0),
             new Point(0, 1)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(0, 2),
             new Point(1, 2)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(-1, 1),
@@ -127,7 +140,8 @@ class FigureO extends AbstractFigure
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(0, 1),
             new Point(1, 0),
@@ -140,25 +154,26 @@ class FigureT extends AbstractFigure
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(-1, 1),
             new Point(0, 1),
             new Point(1, 1)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(-1, 1),
             new Point(0, 1),
             new Point(0, 2)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(-1, 1),
             new Point(0, 1),
             new Point(1, 1)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(0, -1),
             new Point(-1, -1),
@@ -171,13 +186,14 @@ class FigureZ extends AbstractFigure
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(1, 0),
             new Point(1, -1),
             new Point(2, -1)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(0, -1),
             new Point(-1, -1),
@@ -190,13 +206,14 @@ class FigureS extends AbstractFigure
 {
 	constructor() 
 	{
-        super([
+        super();
+        this.addForm([
             new Point(0, 0),
             new Point(1, 0),
             new Point(1, 1),
             new Point(2, 1)
         ]);
-        this.forms.push([
+        this.addForm([
             new Point(0, 0),
             new Point(0, -1),
             new Point(1, -1),
@@ -209,12 +226,10 @@ class HtmlBlock
 {
 	constructor(html) 
 	{
-        if (html !== undefined) {
-            this.html = html;
-        }
+        this.html = html;
     }
 
-	getHtml() 
+	getHtml()
 	{
         return this.html;
 	}
@@ -222,23 +237,34 @@ class HtmlBlock
 	setHtml(html) 
 	{
 		this.html = html;
-	}
+    }
+    
+    addCssClass(cssClass)
+    {
+        this.html.classList.add(cssClass);
+    }
+
+    removeCssClass(cssClass)
+    {
+        this.html.classList.remove(cssClass);
+    }
 }
 
 class Cell extends HtmlBlock 
 {
 	static counter = 0;
 	
+	/**
+	 * @param {Point} point 
+	 */
     constructor(point) {
 		super(document.createElement('div'));
         this.id = ++Cell.counter;
         this.point = point;
-        this.html.classList.add('cell');
-		this.html.setAttribute('id', CELL_ID_MASK + this.id);
-		//
-        this.html.setAttribute('x', this.point.X);
-		this.html.setAttribute('y', this.point.Y);
-		//
+        this.addCssClass('cell');
+		this.getHtml().setAttribute('id', CELL_ID_PREFIX + this.id);
+        this.getHtml().setAttribute('x', this.point.X);
+		this.getHtml().setAttribute('y', this.point.Y);
     }
 }
 
@@ -248,7 +274,7 @@ class Tetris extends HtmlBlock
 	{
 		if (!width || !height) throw "Size of game field not set";
 		super(document.createElement('div'));
-        this.html.classList.add('tetris');
+        this.addCssClass('tetris');
         this.cells = [];
         for (let i = 0; i < height; i++) {
             for (let j = 0; j < width; j++) {
@@ -270,12 +296,12 @@ class Main extends HtmlBlock
 	constructor(width, height) 
 	{
 		super(document.querySelector('#main'));
-		if (!this.html) {
+		if (!this.getHtml()) {
 			alert("Sorry... An error has occured");
 			throw "Main not founded";
 		}
 		this.tetris = new Tetris(width, height);
-		this.html.appendChild(this.tetris.html);
+		this.html.appendChild(this.tetris.getHtml());
     }
 }
 
@@ -284,7 +310,7 @@ class Game
 	/** @property {Main} mainBlock */
 	mainBlock = null;
 	/** @property {int} figureFallDelay */
-	figureFallDelay = null;
+	figureFallDelay = 700;
 	/** @property {int} defaultFallDelay */
 	defaultFallDelay = 1000;
 	/** @property {bool} play */
@@ -299,7 +325,7 @@ class Game
 	currentFigureForm = null;
 	/** @property {Array<Point>} currentCoordinates */
 	currentCoordinates = null;
-	allowFigureFall = false;
+	/** @property {int} fallTimerId */
 	fallTimerId = null;
 
 	constructor(width, height, startPoint) 
@@ -309,7 +335,6 @@ class Game
 		this.mainBlock = new Main(width, height);
 		this.startPoint = startPoint;
 		this.nextPoint = startPoint;
-		this.figureFallDelay = 700;
 	}
 
 	setLevelDifficulty(level) 
@@ -329,30 +354,33 @@ class Game
 	}
 
 	/**
-	 * Check point on available
+	 * Check point on available and apply indents
 	 * 
 	 * @param {Point} point 
 	 * @param {Array<Point>} indents
-	 * @returns {Arrat<Point>}
+	 * @returns {Array<Point>|null}
 	 */
-	checkPoint(point, indents) 
+	_applyIndentsToPoint(point, indents) 
 	{
-		if (!point instanceof Point) return null;
+		if (!(point instanceof Point)) return null;
 		if (!Array.isArray(indents)) return null;
 
 		let coordinates = [];
-		indents.forEach(indent => {
-			coordinates.push(new Point(point.X + indent.X, point.Y + indent.Y));
-		});
-		for (let point of coordinates) {
-			if (point.X < 1 || point.X > this.width || point.Y < 1) { 
+		for (let indent of indents) {
+			let nX = point.X + indent.X;
+			let nY = point.Y + indent.Y;
+			if (nX < 1 || nX > this.width || nY < 1) {
 				return false;
 			}
-		}
-		
+			coordinates.push(new Point(nX, nY));
+        }
+        
 		return coordinates;
 	}
 
+    /**
+     * @returns {void}
+     */
 	drawFigure()
 	{
 		if (!this._calcCoordinates()) return;
@@ -363,7 +391,7 @@ class Game
 			let cell = this.mainBlock.tetris.findCell(point);
 			if (!cell) return;
 			// get html-div of cell
-			let cellHtml = document.querySelector('#' + CELL_ID_MASK + cell.id);
+			let cellHtml = document.querySelector('#' + CELL_ID_PREFIX + cell.id);
 			if (!cellHtml) return;
 			// drawing
 			cellHtml.classList.add(this.currentFigure.cssClass);
@@ -373,36 +401,51 @@ class Game
 	_figureFall()
 	{
 		let newPoint = new Point(this.nextPoint.X, this.nextPoint.Y - 1);
-		let coordinates = this.checkPoint(newPoint, this.currentFigureForm);
+		let coordinates = this._applyIndentsToPoint(newPoint, this.currentFigureForm);
 		if (Array.isArray(coordinates)) {
 			this.nextPoint = newPoint;
 			this.currentCoordinates = coordinates;
 			this.drawFigure();
+			return;
 		}
-		for (let point of this.currentCoordinates) {
-			if ()
-		}
+
 	}
 
 	_selectFigure() 
 	{
-		// TODO: select random figure and form
-		this.currentFigure = new FigureJ();
+        switch (this._randomInt(1, 7))
+        {
+            case 1:
+                this.currentFigure = new FigureJ();
+                break;
+            case 2:
+                this.currentFigure = new FigureL();
+                break;
+            case 3:
+                this.currentFigure = new FigureT();
+                break;
+            case 4:
+                this.currentFigure = new FigureI();
+                break;
+            case 5:
+                this.currentFigure = new FigureZ();
+                break;
+            case 6:
+                this.currentFigure = new FigureS();
+                break;
+            case 7:
+                this.currentFigure = new FigureO();
+                break;
+            default:
+                this.currentFigure = null;
+        }
+		
 
-		if (!this.currentFigure) return;
-		let index = 0;
-		// TODO: select random form
-		this.currentFigureForm = this.currentFigure.getForm(index);
+        if (!this.currentFigure) throw "Figure not choosen!";
+        
+        let maxFormIndex = this.currentFigure.getFormQty() - 1;
+		this.currentFigureForm = this.currentFigure.getForm(this._randomInt(0, maxFormIndex));
 		this._calcCoordinates();
-	}
-
-	_clearFigure()
-	{
-		let cssClass = this.currentFigure.cssClass;
-		let elements = document.querySelectorAll('.' + cssClass + ':not(.set)');
-		for (let elem of elements) {
-			elem.classList.remove(cssClass);
-		}
 	}
 
 	_calcCoordinates()
@@ -414,7 +457,22 @@ class Game
 			this.currentCoordinates.push(new Point(this.nextPoint.X + indent.X, this.nextPoint.Y + indent.Y));
 		});
 		return true;
+    }
+
+	_clearFigure()
+	{
+		let cssClass = this.currentFigure.cssClass;
+		let elements = document.querySelectorAll('.' + cssClass + ':not(.set)');
+		for (let elem of elements) {
+			elem.classList.remove(cssClass);
+		}
 	}
+    
+    _randomInt(min, max)
+    {
+        let rand = min + Math.random() * (max + 1 - min);
+        return Math.floor(rand);
+    }
 }
 
 class Observers
@@ -438,7 +496,7 @@ class Observers
 				game.allowFigureFall = true;
 		}
 		if (newPoint !== null) {
-			let coordinates = game.checkPoint(newPoint, game.currentFigureForm);
+			let coordinates = game._applyIndentsToPoint(newPoint, game.currentFigureForm);
 			if (Array.isArray(coordinates)) {
 				game.nextPoint = newPoint;
 				game.currentCoordinates = coordinates;
@@ -447,7 +505,7 @@ class Observers
 		}
 		if (game.allowFigureFall) {
 			newPoint = new Point(game.nextPoint.X, game.nextPoint.Y - 1)
-			let coordinates = game.checkPoint(newPoint, game.currentFigureForm);
+			let coordinates = game._applyIndentsToPoint(newPoint, game.currentFigureForm);
 			if (Array.isArray(coordinates)) {
 				game.nextPoint = newPoint;
 				game.currentCoordinates = coordinates;
