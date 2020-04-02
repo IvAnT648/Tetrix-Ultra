@@ -5,6 +5,7 @@
 const CELL_ID_PREFIX = 'cell-'
 const WIDTH = 10
 const HEIGHT = 14
+const _DEBUG_ = true;
 
 class Point 
 {
@@ -18,7 +19,7 @@ class Point
 class AbstractFigure 
 {
 	forms = [];
-	cssClass = null;
+	cssClass = 'figure';
 
 	constructor() 
 	{
@@ -261,9 +262,11 @@ class Cell extends HtmlBlock
         this.id = ++Cell.counter;
         this.point = point;
         this.addCssClass('cell');
-		this.getHtml().setAttribute('id', CELL_ID_PREFIX + this.id);
-        //this.getHtml().setAttribute('x', this.point.X);
-		//this.getHtml().setAttribute('y', this.point.Y);
+        this.getHtml().setAttribute('id', CELL_ID_PREFIX + this.id);
+        if (_DEBUG_) {
+            this.getHtml().setAttribute('x', this.point.X);
+            this.getHtml().setAttribute('y', this.point.Y);
+        }
     }
 }
 
@@ -325,7 +328,9 @@ class Game
 	/** @property {Array<Point>} currentCoordinates */
 	currentCoordinates = null;
 	/** @property {int} fallTimerId */
-	fallTimerId = null;
+    fallTimerId = null;
+    /** @property {bool} figureChangeFlag */
+    figureChangeFlag = false;
 
 	constructor(width, height, startPoint) 
 	{
@@ -341,13 +346,14 @@ class Game
      */
 	run()
 	{
-		if (!this.mainBlock) throw "Run game failed";
+        if (!this.mainBlock) 
+            throw "Run game failed";
 		this._selectFigure();
         this.drawFigure();
         // fall
         this.fallTimerId = setInterval(this._figureFall.bind(this), this.figureFallDelay);
         // timeout
-		setTimeout(() => clearInterval(this.fallTimerId), 10000);
+		setTimeout(() => clearInterval(this.fallTimerId), 20000);
 	}
 
     /**
@@ -367,19 +373,35 @@ class Game
      */
 	drawFigure()
 	{
-		if (!this._calcCoordinates()) return;
-		this._clearFigure();
+        if (!this._calcCoordinates()) 
+            return;
+        this._clearFigure();
+        if (this.currentCoordinates.find(p => p.Y == 1)) {
+            this.figureChangeFlag = true;
+        }
 
-		this.currentCoordinates.forEach(point => {
-			// find in cell blocks
+        for (let point of this.currentCoordinates)
+        {
+            // find in cell blocks
 			let cell = this.mainBlock.tetris.findCell(point);
-			if (!cell) throw "Cell not found!";
+            if (!cell) 
+                return;
 			// get html-div of cell
 			let cellHtml = document.querySelector('#' + CELL_ID_PREFIX + cell.id);
-			if (!cellHtml) throw "Cell not found in html document!";
+            if (!cellHtml) 
+                return;
 			// drawing
-			cellHtml.classList.add(this.currentFigure.cssClass);
-		});
+            cellHtml.classList.add(this.currentFigure.cssClass);
+            cellHtml.classList.add('filled');
+            if (this.figureChangeFlag) {
+                cellHtml.classList.add('stopped');
+            }
+        }
+        if (this.figureChangeFlag) {
+            this._selectFigure();
+            this.nextPoint = this.startPoint;
+            this.figureChangeFlag = false;
+        }
 	}
 
 	/**
@@ -387,7 +409,7 @@ class Game
 	 * 
 	 * @param {Point} point 
 	 * @param {Array<Point>} indents
-	 * @returns {Array<Point>|null}
+	 * @returns {Array<Point>|false}
 	 */
 	_applyIndentsToPoint(point, indents) 
 	{
@@ -400,12 +422,18 @@ class Game
 			let nY = point.Y + indent.Y;
 			if (nX < 1 || nX > this.width || nY < 1) {
 				return false;
-			}
-			coordinates.push(new Point(nX, nY));
+            }
+            let point = new Point(nX, nY);
+			coordinates.push(point);
         }
         
 		return coordinates;
-	}
+    }
+    
+    _isFreeCell(point)
+    {
+        
+    }
     
     /**
      * Figure fall method
@@ -454,7 +482,8 @@ class Game
                 this.currentFigure = null;
         }
 		
-        if (!this.currentFigure) throw "Figure not choosen!";
+        if (!this.currentFigure) 
+            throw "Figure not choosen!";
         
         let maxFormIndex = this.currentFigure.getFormQty() - 1;
 		this.currentFigureForm = this.currentFigure.getForm(this._randomInt(0, maxFormIndex));
@@ -466,12 +495,15 @@ class Game
      */
 	_calcCoordinates()
 	{
-		if (!this.nextPoint) return false;
-		if (!Array.isArray(this.currentFigureForm)) throw "Figure form isn't corrected";
+        if (!this.nextPoint) 
+            return false;
+        if (!Array.isArray(this.currentFigureForm)) 
+            throw "Figure form wasn't corrected";
 		this.currentCoordinates = [];
 		this.currentFigureForm.forEach(indent => {
 			this.currentCoordinates.push(new Point(this.nextPoint.X + indent.X, this.nextPoint.Y + indent.Y));
-		});
+        });
+        
 		return true;
     }
 
@@ -481,7 +513,7 @@ class Game
 	_clearFigure()
 	{
 		let cssClass = this.currentFigure.cssClass;
-		let elements = document.querySelectorAll('.' + cssClass + ':not(.set)');
+		let elements = document.querySelectorAll('.' + cssClass + ':not(.stopped)');
 		for (let elem of elements) {
 			elem.classList.remove(cssClass);
 		}
@@ -506,7 +538,8 @@ class Observers
 	static keyObserver(event)
 	{
 		let game = this.gameContext;
-		if (!game) return;
+        if (!game) 
+            return;
 		let moveDirection = null;
 		let newPoint = null;
 		switch (event.keyCode) {
@@ -519,7 +552,8 @@ class Observers
 				newPoint = new Point(game.nextPoint.X + 1, game.nextPoint.Y);
 				break;
 			case 40: // key down
-				game.allowFigureFall = true;
+                newPoint = new Point(game.nextPoint.X, game.nextPoint.Y - 1);
+                break;
 		}
 		if (newPoint !== null) {
 			let coordinates = game._applyIndentsToPoint(newPoint, game.currentFigureForm);
@@ -527,16 +561,6 @@ class Observers
 				game.nextPoint = newPoint;
 				game.currentCoordinates = coordinates;
 				game.drawFigure();
-			}
-		}
-		if (game.allowFigureFall) {
-			newPoint = new Point(game.nextPoint.X, game.nextPoint.Y - 1)
-			let coordinates = game._applyIndentsToPoint(newPoint, game.currentFigureForm);
-			if (Array.isArray(coordinates)) {
-				game.nextPoint = newPoint;
-				game.currentCoordinates = coordinates;
-				game.drawFigure();
-				game.allowFigureFall = false;
 			}
 		}
 	}
